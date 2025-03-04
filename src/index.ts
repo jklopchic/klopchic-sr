@@ -1,6 +1,8 @@
 import express, { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
+import authRoutes from './auth/authRoutes';
+import { checkJwt } from './auth/authMiddleware';
 
 dotenv.config();
 
@@ -10,19 +12,23 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
+// Auth routes
+app.use('/auth', authRoutes);
+
 // Basic health check endpoint
 app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok' });
 });
 
-// User routes
-app.post('/users', async (req: Request, res: Response) => {
+// Protected user routes
+app.post('/users', checkJwt, async (req: Request, res: Response) => {
   try {
     const { email, name } = req.body;
     const user = await prisma.user.create({
       data: {
         email,
         name,
+        auth0Id: req.auth?.payload.sub, // Store Auth0 user ID
       },
     });
     res.json(user);
@@ -31,7 +37,7 @@ app.post('/users', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/users', async (_req: Request, res: Response) => {
+app.get('/users', checkJwt, async (_req: Request, res: Response) => {
   try {
     const users = await prisma.user.findMany();
     res.json(users);
