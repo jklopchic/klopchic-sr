@@ -3,11 +3,13 @@ import { PrismaClient } from '@prisma/client';
 import { ScryfallService } from '../services/scryfall';
 import { UserService } from '../services/user';
 import { toSimpleCard } from '../types/card';
+import { CardService } from '../services/cards';
 
 const router = Router();
 const prisma = new PrismaClient();
 const scryfall = ScryfallService.getInstance();
 const userService = UserService.getInstance();
+const cardService = CardService.getInstance();
 
 /* /collection/add */       
 const addCardToCollection: RequestHandler = async (req, res) => {
@@ -26,51 +28,33 @@ const addCardToCollection: RequestHandler = async (req, res) => {
       req.oidc.user?.name
     );
 
-    // Get card from Scryfall
-    const scryfallCard = await scryfall.getCardByName(cardName);
+    const card = await cardService.fetchAndUpdateCard(cardName);
+    
+    if (card) {
+      // Try to update existing card quantity or create new entry
+      await prisma.userCard.upsert({
+        where: {
+          userId_cardId: {
+            userId: user.id,
+            cardId: card.id
+          }
+        },
+        update: {
+          quantity: {
+            increment: quantity
+          }
+        },
+        create: {
+          userId: user.id,
+          cardId: card.id,
+          quantity
+        }
+      });
 
-    // Get or create card in our database
-    const card = await prisma.card.upsert({
-      where: { oracleId: scryfallCard.oracle_id },
-      update: {},
-      create: {
-        oracleId: scryfallCard.oracle_id,
-        name: scryfallCard.name,
-        oracleText: scryfallCard.oracle_text,
-        typeLine: scryfallCard.type_line,
-        manaCost: scryfallCard.mana_cost,
-        cmc: scryfallCard.cmc,
-        colors: scryfallCard.colors,
-        colorIdentity: scryfallCard.color_identity,
-        keywords: scryfallCard.keywords,
-        power: scryfallCard.power,
-        toughness: scryfallCard.toughness,
-        imageUrl: scryfallCard.image_uris?.normal,
-        artist: scryfallCard.artist,
-        set: scryfallCard.set,
-        setNumber: scryfallCard.collector_number,
-        rarity: scryfallCard.rarity
-      }
-    });
-
-    const userCard = await prisma.userCard.findFirst({
-      where: {
-        userId: user.id,
-        cardId: card.id
-      }
-    });
-
-    await prisma.userCard.upsert({
-      where: { id: userCard?.id },
-      update: { quantity: userCard?.quantity + quantity },
-      create: {
-        userId: user.id,
-        cardId: card.id,
-        quantity
-      }
-    });
-
-    res.json({ message: 'Card added to collection', card });
+      res.json({ message: 'Card added to collection', card });
+    } else {
+      res.status(404).json({ error: 'Card not found' });
+    }
   } catch (error) {
     console.error('Error adding card to collection:', error);
     res.status(500).json({ error: 'Failed to add card to collection' });

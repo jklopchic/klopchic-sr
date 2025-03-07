@@ -12,14 +12,14 @@ export interface Card {
   name: string;
   oracleText: string;
   typeLine: string;
-  manaCost?: string;
+  manaCost: string | null;
   cmc: number;
   colors: string[];
   colorIdentity: string[];
   keywords: string[];
-  power?: string;
-  toughness?: string;
-  imageUrl?: string;
+  power: string | null;
+  toughness: string | null;
+  imageUrl: string | null;
   artist: string;
   set: string;
   setNumber: string;
