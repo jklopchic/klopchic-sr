@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { ScryfallCard } from '../types/scryfall';
+import { ScryfallCard, ScryfallCatalog } from '../types/scryfall';
 import { Card } from '../types/card';
 
 const BASE_URL = 'https://api.scryfall.com';
@@ -86,5 +86,11 @@ export class ScryfallService {
       params: { q: query }
     });
     return response.data;
+  }
+
+  async getAllCardNames(): Promise<string[]> {
+    await this.ensureRateLimit();
+    const response = await scryfallClient.get<ScryfallCatalog>(`/catalog/card-names`);
+    return response.data.data;
   }
 }
