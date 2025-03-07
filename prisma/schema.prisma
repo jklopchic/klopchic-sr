@@ -8,10 +8,48 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
+  id        Int        @id @default(autoincrement())
+  email     String     @unique
   name      String?
-  auth0Id   String?  @unique @map("auth0_id")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  auth0Id   String?    @unique @map("auth0_id")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  cards     UserCard[]
+}
+
+model Card {
+  id            Int        @id @default(autoincrement())
+  oracleId      String     @unique @map("oracle_id")
+  name          String
+  oracleText    String     @map("oracle_text")
+  typeLine      String     @map("type_line")
+  manaCost      String?    @map("mana_cost")
+  cmc           Float
+  colors        String[]
+  colorIdentity String[]   @map("color_identity")
+  keywords      String[]
+  power         String?
+  toughness     String?
+  imageUrl      String?    @map("image_url")
+  artist        String
+  set           String
+  setNumber     String     @map("set_number")
+  rarity        String
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+  userCards     UserCard[]
+}
+
+model UserCard {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  cardId    Int      @map("card_id")
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id])
+  card      Card     @relation(fields: [cardId], references: [id])
+
+  @@unique([userId, cardId])
+  @@map("user_cards")
 }
