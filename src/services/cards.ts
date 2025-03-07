@@ -70,7 +70,5 @@ export class CardService {
             //TODO: implement retries, logging, etc
             return null
         }
-    }
-
-    
+    }    
 }
